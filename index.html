@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🧪%3C/text%3E%3C/svg%3E">
+<title>IP 纯净度检测 · 机房/住宅/代理/风险一站看</title>
+<meta name="description" content="检测当前出口 IP 或任意 IP 的类型（机房/住宅）、代理/VPN 标记、风险分与综合纯净度。">
+<style>
+:root{--bg:#0b1020;--card:#141a2e;--card2:#1b2340;--txt:#e8ecf6;--sub:#9aa3bd;--line:#26304f;--acc:#5b8cff;--good:#22c55e;--ok:#84cc16;--mid:#f59e0b;--bad:#f97316;--worse:#ef4444}
+@media (prefers-color-scheme:light){:root{--bg:#f3f5fb;--card:#fff;--card2:#f1f4fb;--txt:#141a2e;--sub:#5d6680;--line:#e2e7f2}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:720px;margin:0 auto;padding:16px 14px calc(28px + env(safe-area-inset-bottom))}
+header h1{font-size:21px;margin:6px 0 2px}header p{margin:0;color:var(--sub);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px}
+.card h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:6px}
+.card h2 small{font-weight:400;color:var(--sub);font-size:12px;margin-left:auto}
+form{display:flex;gap:8px;margin-top:12px}
+input{flex:1;min-width:0;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--txt);outline:none}
+input:focus{border-color:var(--acc)}
+button{font-size:15px;border:0;border-radius:12px;padding:0 14px;background:var(--acc);color:#fff;font-weight:600;cursor:pointer;white-space:nowrap}
+button.ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line);padding:7px 10px;font-size:13px;font-weight:500}
+.hero{display:flex;gap:14px;align-items:center}
+.ring{--p:0;--c:var(--sub);width:112px;height:112px;flex:none;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--card2) 0);display:grid;place-items:center;transition:--p .6s}
+.ring>div{width:92px;height:92px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center}
+.ring b{font-size:32px;line-height:1}.ring span{font-size:11px;color:var(--sub)}
+.verdict{font-size:22px;font-weight:700}
+.ipline{font-family:ui-monospace,Menlo,monospace;font-size:17px;word-break:break-all;margin:2px 0}
+.meta{color:var(--sub);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--card2);border:1px solid var(--line)}
+.chip.g{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.chip.y{color:var(--mid);border-color:color-mix(in srgb,var(--mid) 40%,transparent)}
+.chip.r{color:var(--worse);border-color:color-mix(in srgb,var(--worse) 40%,transparent)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:var(--card2);border-radius:12px;padding:9px 10px;min-width:0}
+.kv .k{font-size:12px;color:var(--sub)}.kv .v{font-weight:600;word-break:break-word}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl th{color:var(--sub);font-weight:500;font-size:12px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+.y1{color:var(--worse);font-weight:700}.n1{color:var(--good)}.na{color:var(--sub)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row:last-child{border-bottom:0}.row .l{color:var(--sub);flex:none}.row .r{text-align:right;word-break:break-all}
+.note{font-size:12.5px;color:var(--sub)}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a{color:var(--txt);text-decoration:none;font-size:13px;padding:7px 11px;border-radius:10px;background:var(--card2);border:1px solid var(--line)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--sub);border-top-color:transparent;border-radius:50%;animation:s 0.8s linear infinite;vertical-align:-1px}
+@keyframes s{to{transform:rotate(360deg)}}
+details summary{cursor:pointer;color:var(--sub);font-size:13px}
+.bar{height:6px;border-radius:6px;background:var(--card2);overflow:hidden;margin-top:4px}.bar i{display:block;height:100%}
+.tabs{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+footer{color:var(--sub);font-size:12px;text-align:center;margin-top:18px}
+.mask .ipm{filter:blur(6px)}
+.ring.sm{width:84px;height:84px}.ring.sm>div{width:68px;height:68px}.ring.sm b{font-size:24px}
+.sub{font-size:13px;font-weight:700;margin:14px 0 2px;padding-top:10px;border-top:1px dashed var(--line)}
+.ei{display:flex;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}.ei:last-child{border-bottom:0}
+.ei .ic{flex:none;width:22px;text-align:center;line-height:1.5}.ei .bd{flex:1;min-width:0}
+.ei .t{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.ei .lbl{font-weight:600;font-size:14px}
+.ei .v{font-size:13px;color:var(--sub);word-break:break-word;margin-top:2px}.ei.bad .lbl{color:var(--worse)}
+.tip{font-size:12.5px;line-height:1.6;background:var(--card2);border-left:3px solid var(--mid);border-radius:8px;padding:7px 9px;margin-top:6px;color:var(--txt)}
+.ei.bad .tip{border-left-color:var(--worse)}
+.more{margin-top:4px}.more .row,.dnsl .row,.routeTbl .row{font-size:12.5px;padding:6px 0}
+.dnsl{margin-top:6px;background:var(--card2);border-radius:10px;padding:2px 9px}
+.routeTbl .sub{border-top:0;margin:6px 0 0;padding-top:0;font-weight:500;color:var(--sub);font-size:12px}
+
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+<header>
+  <h1>🧪 IP 纯净度检测</h1>
+  <p>机房还是住宅、有没有被标记代理/VPN、风险分多少、ChatGPT/Claude 看到的是哪个 IP —— 一页看完。</p>
+</header>
+
+<form id="f" autocomplete="off">
+  <input id="q" inputmode="text" placeholder="输入 IP（留空 = 检测我当前出口）" aria-label="IP 地址">
+  <button type="submit">检测</button>
+</form>
+<div class="tabs" id="tabs"></div>
+
+<section class="card" id="hero">
+  <div class="hero">
+    <div class="ring" id="ring"><div><b id="score">--</b><span>纯净度</span></div></div>
+    <div style="min-width:0;flex:1">
+      <div class="verdict" id="verdict"><span class="spin"></span> 检测中…</div>
+      <div class="ipline ipm" id="ip">—</div>
+      <div class="meta" id="loc">正在获取出口 IP</div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+    <button class="ghost" id="maskBtn" type="button">🙈 隐藏 IP（方便截图）</button>
+    <button class="ghost" id="copyBtn" type="button">📋 复制报告</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>📌 基础信息</h2>
+  <div class="grid" id="basic"></div>
+</section>
+
+<section class="card">
+  <h2>🗳️ 各数据库判定 <small>多家对比，不迷信单一来源</small></h2>
+  <div class="scroll"><table class="tbl" id="votes"></table></div>
+  <p class="note">“是”= 该库把此 IP 标记为对应类型；“—”= 该库不提供此项。ipwho.is / ipleak / ipapi.is 只提供位置和运营商，不参与投票。</p>
+</section>
+
+<section class="card">
+  <h2>🧮 分数怎么算</h2>
+  <div id="breakdown"></div>
+  <details style="margin-top:8px"><summary>计分规则</summary>
+  <p class="note">满分 100，按“多少比例的数据库这么认为”扣分：机房/IDC −30，VPN −15，代理 −15，Tor −40，滥用/攻击记录 −25；再扣 ipquery 风险分 × 0.3；注册地与使用地不一致（非原生）−5。机房 IP 最高 79 分（最多“较纯净”）。≥85 极纯净，70–84 较纯净，50–69 一般，30–49 较差，&lt;30 很差。<br>参考了 ping0.cc（风控值 + IDC/家宽）、IPQuality 脚本（多库并列 + 风险因子）、scamalytics（欺诈分）、ipinfo/ipregistry（隐私标记）的展示方式。</p>
+  </details>
+</section>
+
+<section class="card" id="svcCard">
+  <h2>🤖 各服务看到的你 <small>仅检测“我当前出口”时</small></h2>
+  <div id="svc"><span class="note">检测任意 IP 时不适用</span></div>
+  <p class="note">直接问 ChatGPT / Claude / X 等网站的 Cloudflare 节点“你看到我是谁”。若 IP 与上面不同，说明小火箭把它们分流到了别的节点。地区一栏只按官方支持地区判断，不代表账号一定不被风控。Netflix 等流媒体解锁浏览器无法准确检测，请在服务器上跑 IPQuality 脚本。</p>
+</section>
+
+<section class="card" id="envCard">
+  <h2>🕵️ 泄露与环境一致性 <small>WebRTC · DNS · 分流 · 指纹</small></h2>
+  <div id="env"><span class="note">检测任意 IP 时不适用</span></div>
+</section>
+
+<section class="card">
+  <h2>🔗 深度查询（第三方站点）</h2>
+  <div class="links" id="links"></div>
+  <p class="note" style="margin-top:8px">这些站点的风控库更全（如 Scamalytics 欺诈分、AbuseIPDB 举报记录），无法在本页直接调用，点开即可对照。</p>
+</section>
+
+<section class="card">
+  <h2>📡 数据源状态</h2>
+  <div id="srcs"></div>
+  <details style="margin-top:6px"><summary>原始返回数据</summary><pre id="raw" style="white-space:pre-wrap;word-break:break-all;font-size:11px;max-height:320px;overflow:auto"></pre></details>
+</section>
+
+<footer>所有查询都在你的浏览器里直接发给公开 API，本站不保存任何数据。<br>免费接口有频率限制，偶尔某个源失败属正常。</footer>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isIP=s=>/^(\d{1,3}\.){3}\d{1,3}$/.test(s)||/^[0-9a-f:]+:[0-9a-f:.]*$/i.test(s);
+const isV6=s=>s&&s.includes(":");
+async function getJSON(url,ms=9000){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const tx=await r.text();try{return JSON.parse(tx)}catch{return tx}}finally{clearTimeout(t)}}
+function trace(t){const o={};String(t).split("\n").forEach(l=>{const i=l.indexOf("=");if(i>0)o[l.slice(0,i)]=l.slice(i+1)});return o}
+
+/* 常见机房 ASN（兜底判断，参考公开资料） */
+const DC_ASN=new Set([174,9009,16509,14618,8075,15169,396982,31898,45102,37963,132203,45090,14061,20473,63949,16276,24940,51167,36352,8100,35916,25820,40676,46844,54600,62240,53667,135377,906,397423,209242,13335,60068,212238,202422,64267,199524,9312,49981,136907,55990,21859,3214,29802,397373,399629,206264,51396,198953]);
+const DC_KW=/(hosting|host|cloud|datacenter|data center|server|vps|colo|cogent|m247|digitalocean|vultr|choopa|linode|akamai|ovh|hetzner|amazon|aws|google|microsoft|azure|oracle|alibaba|tencent|leaseweb|psychz|quadranet|multacom|colocrossing|it7|dmit|bandwagon|contabo|zenlayer|cdn77|datacamp|frantech|buyvm)/i;
+const MOB_KW=/(mobile|wireless|cellular|t-mobile|verizon wireless|lte|5g|移动|联通|电信)/i;
+
+/* 官方不支持地区（仅地区层面参考） */
+const BLOCK={chatgpt:["CN","HK","MO","RU","IR","KP","SY","CU","BY"],claude:["CN","HK","MO","RU","IR","KP","SY","CU","BY","VE"]};
+
+/* 数据源：每个返回统一结构 */
+const SOURCES=[
+ {id:"ipinfo",name:"IPinfo",url:ip=>`https://ipinfo.io/widget/demo/${ip}`,parse:j=>{const d=j.data||j;const p=d.privacy||{};const t=(d.asn&&d.asn.type)||(d.company&&d.company.type);return{ip:d.ip,country:d.country,city:d.city,region:d.region,org:d.org,asn:d.asn&&d.asn.asn,isp:d.asn&&d.asn.name,tz:d.timezone,type:t,dc:p.hosting??(t?t==="hosting":undefined),vpn:p.vpn,proxy:p.proxy,tor:p.tor,relay:p.relay,hostname:d.hostname,extra:p.service?("服务: "+p.service):""}}},
+ {id:"ipregistry",name:"ipregistry",url:ip=>`https://api.ipregistry.co/${ip}?key=tryout`,parse:j=>{const s=j.security||{};const c=j.connection||{};return{ip:j.ip,country:j.location&&j.location.country&&j.location.country.code,city:j.location&&j.location.city,asn:c.asn?("AS"+c.asn):undefined,isp:c.organization,type:c.type,dc:s.is_cloud_provider||c.type==="hosting",vpn:s.is_vpn,proxy:s.is_proxy||s.is_residential_proxy,tor:s.is_tor||s.is_tor_exit,abuse:s.is_abuser||s.is_attacker||s.is_threat,relay:s.is_relay,mobile:!!(j.carrier&&j.carrier.name),tz:j.time_zone&&j.time_zone.id}}},
+ {id:"iplocate",name:"IPLocate",url:ip=>`https://www.iplocate.io/api/lookup/${ip}`,parse:j=>{const p=j.privacy||{};const t=j.asn&&j.asn.type;return{ip:j.ip,country:j.country_code,city:j.city,asn:j.asn&&j.asn.asn,isp:j.asn&&j.asn.name,type:p.is_hosting?"hosting":t,dc:p.is_hosting,vpn:p.is_vpn,proxy:p.is_proxy,tor:p.is_tor,abuse:p.is_abuser,relay:p.is_icloud_relay,tz:j.time_zone,regCountry:j.asn&&j.asn.country_code}}},
+ {id:"ipquery",name:"ipquery",url:ip=>`https://api.ipquery.io/${ip}`,parse:j=>{const r=j.risk||{};return{ip:j.ip,country:j.location&&j.location.country_code,city:j.location&&j.location.city,asn:j.isp&&j.isp.asn,isp:j.isp&&j.isp.isp,dc:r.is_datacenter,vpn:r.is_vpn,proxy:r.is_proxy,tor:r.is_tor,mobile:r.is_mobile,risk:r.risk_score,tz:j.location&&j.location.timezone,type:r.is_mobile?"mobile":(r.is_datacenter?"hosting":undefined)}}},
+ {id:"freeipapi",name:"FreeIPAPI",url:ip=>`https://free.freeipapi.com/api/v1/json/${ip}`,parse:j=>({ip:j.ipAddress,country:j.countryCode,city:j.cityName,asn:j.asn?("AS"+j.asn):undefined,isp:j.asnOrganization,proxy:j.isProxy,tz:j.timeZones&&j.timeZones[0]})},
+ {id:"ipwho",name:"ipwho.is",url:ip=>`https://ipwho.is/${ip}`,parse:j=>{if(j.success===false)throw new Error(j.message||"fail");const c=j.connection||{};return{ip:j.ip,country:j.country_code,countryName:j.country,city:j.city,region:j.region,flag:j.flag&&j.flag.emoji,asn:c.asn?("AS"+c.asn):undefined,isp:c.isp,org:c.org,domain:c.domain,tz:j.timezone&&j.timezone.id}}},
+ {id:"ipleak",name:"ipleak",url:ip=>`https://ipleak.net/json/${ip}`,parse:j=>({ip:j.ip,country:j.country_code,city:j.city_name,asn:j.as_number?("AS"+j.as_number):undefined,isp:j.isp_name,regCountry:j.registered_country_code,tz:j.time_zone})},
+ {id:"ipapiis",name:"ipapi.is",url:ip=>`https://api.ipapi.is/?q=${ip}`,parse:j=>({ip:j.ip,countryName:j.country,city:j.city,asn:j.asn&&j.asn.split(" ")[0],isp:j.company,tz:j.timezone})}
+];
+
+let state={target:null,self:false,res:{},masked:false};
+const TYPE_CN={hosting:"机房/IDC",isp:"住宅/家宽",business:"商业",education:"教育",government:"政府",mobile:"移动网络",cellular:"移动网络"};
+
+function vote(field){const vals=Object.values(state.res).filter(r=>r.ok&&typeof r.d[field]==="boolean").map(r=>r.d[field]);return{n:vals.length,yes:vals.filter(Boolean).length,frac:vals.length?vals.filter(Boolean).length/vals.length:0}}
+function first(field){for(const s of SOURCES){const r=state.res[s.id];if(r&&r.ok&&r.d[field]!==undefined&&r.d[field]!==null&&r.d[field]!=="")return r.d[field]}}
+function asnNum(){const a=first("asn");return a?parseInt(String(a).replace(/\D/g,"")):NaN}
+
+function compute(){
+  const dc=vote("dc"),vpn=vote("vpn"),px=vote("proxy"),tor=vote("tor"),ab=vote("abuse"),mob=vote("mobile");
+  const isp=first("isp")||"",org=first("org")||"";const an=asnNum();
+  // 兜底：机房 ASN / 关键词
+  let heurDC=DC_ASN.has(an)||DC_KW.test(isp+" "+org);
+  let dcFrac=dc.n?dc.frac:(heurDC?1:0);
+  if(dc.n&&heurDC&&dcFrac<0.5)dcFrac=Math.max(dcFrac,0.5);
+  const risk=first("risk");
+  const country=first("country"),reg=first("regCountry");
+  const nonNative=!!(reg&&country&&reg.toUpperCase()!==String(country).toUpperCase());
+  const items=[
+    ["机房/IDC",30*dcFrac,dc.n?`${dc.yes}/${dc.n} 家认为是机房`+(heurDC?"，ASN 也在机房名单":""):(heurDC?"ASN 在机房名单":"无数据")],
+    ["VPN 标记",15*vpn.frac,`${vpn.yes}/${vpn.n} 家标记`],
+    ["代理标记",15*px.frac,`${px.yes}/${px.n} 家标记`],
+    ["Tor 出口",tor.yes?40:0,`${tor.yes}/${tor.n} 家标记`],
+    ["滥用/攻击记录",ab.yes?25*Math.max(ab.frac,0.6):0,`${ab.yes}/${ab.n} 家标记`],
+    ["风险分",typeof risk==="number"?risk*0.3:0,typeof risk==="number"?`ipquery 风险分 ${risk}/100`:"无数据"],
+    ["非原生 IP",nonNative?5:0,reg?`注册地 ${reg} / 使用地 ${country}`:"无数据"]
+  ];
+  let score=Math.max(0,Math.min(100,Math.round(100-items.reduce((a,b)=>a+b[1],0))));const capped=dcFrac>=0.5&&score>79;if(capped){items.push(["机房封顶",score-79,"机房 IP 最高只给“较纯净”"]);score=79}
+  // 类型
+  let type;
+  if(tor.yes)type="Tor 出口";
+  else if(mob.yes&&dcFrac<0.5)type="移动网络";
+  else if(dcFrac>=0.5)type="机房/IDC";
+  else{const ts=Object.values(state.res).filter(r=>r.ok&&r.d.type).map(r=>r.d.type);const edu=ts.includes("education");type=edu?"教育网":(ts.includes("business")&&!ts.includes("isp")?"商业宽带":(ts.length||dc.n?"住宅/家宽":"未知"))}
+  return{score,items,type,dcFrac,vpn,px,tor,ab,risk,nonNative,heurDC};
+}
+function grade(s){if(s>=85)return["极纯净","var(--good)"];if(s>=70)return["较纯净","var(--ok)"];if(s>=50)return["一般","var(--mid)"];if(s>=30)return["较差","var(--bad)"];return["很差","var(--worse)"]}
+
+function render(final){
+  const ok=Object.values(state.res).filter(r=>r.ok);
+  const ip=state.target;
+  $("#ip").textContent=ip||"—";
+  const cn=first("countryName")||first("country")||"",city=first("city")||"",region=first("region")||"";
+  const flag=first("flag")||"";
+  $("#loc").textContent=ok.length?`${flag} ${cn} ${region&&region!==city?region+" ":""}${city} · ${first("asn")||""} ${first("isp")||""}`:(final?"所有数据源都失败了，请稍后重试":"查询中…");
+  if(!ok.length){if(final){$("#verdict").textContent="查询失败";}return}
+  const c=compute();const [label,color]=grade(c.score);
+  const ring=$("#ring");ring.style.setProperty("--p",c.score);ring.style.setProperty("--c",color);
+  $("#score").textContent=c.score;$("#score").style.color=color;
+  $("#verdict").innerHTML=`<span style="color:${color}">${label}</span>`+(final?"":` <span class="spin"></span>`);
+  const chips=[];
+  chips.push([c.type,c.type==="住宅/家宽"||c.type==="移动网络"?"g":(c.type==="机房/IDC"?"y":"")]);
+  chips.push([c.vpn.yes?"被标记 VPN":"未标记 VPN",c.vpn.yes?"r":"g"]);
+  chips.push([c.px.yes?"被标记代理":"未标记代理",c.px.yes?"r":"g"]);
+  if(c.tor.yes)chips.push(["Tor","r"]);
+  chips.push([c.ab.yes?"有滥用记录":"无滥用记录",c.ab.yes?"r":"g"]);
+  if(typeof c.risk==="number")chips.push([`风险分 ${c.risk}`,c.risk>=60?"r":(c.risk>=30?"y":"g")]);
+  chips.push([c.nonNative?"非原生":"原生/未知",c.nonNative?"y":""]);
+  $("#chips").innerHTML=chips.map(([t,k])=>`<span class="chip ${k}">${esc(t)}</span>`).join("");if(state.self&&Object.keys(ENV).length)envScore();
+  // 基础信息
+  const kv=[["IP 类型",c.type],["国家/地区",`${flag} ${cn}`],["城市",[region,city].filter((v,i,a)=>v&&a.indexOf(v)===i).join(" · ")||"—"],["ASN",first("asn")||"—"],["运营商/ISP",first("isp")||"—"],["组织",first("org")||"—"],["IP 时区",first("tz")||"—"],["反向解析",first("hostname")||"—"],["注册国家",first("regCountry")||"—"],["IP 版本",isV6(ip)?"IPv6":"IPv4"]];
+  $("#basic").innerHTML=kv.map(([k,v])=>`<div class="kv"><div class="k">${k}</div><div class="v ${k==="反向解析"?"ipm":""}">${esc(v)}</div></div>`).join("");
+  // 投票表
+  const cols=[["dc","机房"],["vpn","VPN"],["proxy","代理"],["tor","Tor"],["abuse","滥用"]];
+  let h=`<tr><th>数据库</th><th>类型</th>${cols.map(c=>`<th>${c[1]}</th>`).join("")}<th>风险</th></tr>`;
+  for(const s of SOURCES){const r=state.res[s.id];if(!r||["ipwho","ipleak","ipapiis"].includes(s.id))continue;
+    if(!r.ok){h+=`<tr><td>${s.name}</td><td colspan="7" class="na">${r.pending?'<span class="spin"></span>':"查询失败"}</td></tr>`;continue}
+    const d=r.d;const ty=d.type?(TYPE_CN[d.type]||d.type):"—";
+    h+=`<tr><td>${s.name}</td><td>${esc(ty)}</td>${cols.map(([f])=>typeof d[f]==="boolean"?(d[f]?'<td class="y1">是</td>':'<td class="n1">否</td>'):'<td class="na">—</td>').join("")}<td>${typeof d.risk==="number"?d.risk:'<span class="na">—</span>'}</td></tr>`}
+  $("#votes").innerHTML=h;
+  // 扣分明细
+  $("#breakdown").innerHTML=`<div class="row"><span class="l">起始分</span><span class="r">100</span></div>`+c.items.map(([k,v,why])=>`<div class="row"><span class="l">${k}</span><span class="r">${v>0?`<b style="color:var(--bad)">−${v.toFixed(1)}</b>`:'<span class="n1">0</span>'} <span class="note">· ${esc(why)}</span></span></div>`).join("")+`<div class="row"><span class="l"><b>综合纯净度</b></span><span class="r"><b style="color:${color}">${c.score} · ${label}</b></span></div>`+`<p class="note" style="margin:8px 0 0">${advice(c)}</p>`;
+  // 来源状态
+  $("#srcs").innerHTML=SOURCES.map(s=>{const r=state.res[s.id];const st=!r?"—":r.pending?'<span class="spin"></span>':r.ok?`<span class="n1">✓ ${r.ms}ms</span>`:`<span class="y1">✗ ${esc(r.err)}</span>`;return`<div class="row"><span class="l">${s.name}</span><span class="r">${st}</span></div>`}).join("");
+  $("#raw").textContent=JSON.stringify(Object.fromEntries(Object.entries(state.res).map(([k,v])=>[k,v.raw||v.err])),null,1);
+  // 链接
+  const L=[["ping0.cc",`https://ping0.cc/ip/${ip}`],["Scamalytics",`https://scamalytics.com/ip/${ip}`],["IPinfo",`https://ipinfo.io/${ip}`],["AbuseIPDB",`https://www.abuseipdb.com/check/${ip}`],["proxycheck",`https://proxycheck.io/v3/${ip}`],["ippure",`https://ippure.com/`],["BrowserLeaks",`https://browserleaks.com/ip`],["ip.skk.moe",`https://ip.skk.moe/`]];
+  $("#links").innerHTML=L.map(([n,u])=>`<a href="${u}" target="_blank" rel="noopener">${n} ↗</a>`).join("");
+}
+function advice(c){
+  const t=[];
+  if(c.dcFrac>=0.5)t.push("这是机房 IP：日常翻墙、看视频没问题，但 ChatGPT/Claude、Netflix、TikTok、银行/电商注册等对机房 IP 更敏感，可能遇到验证码、风控或“不支持的地区”。");
+  else t.push("多数数据库认为这是住宅/运营商 IP，对风控敏感的服务通常更友好。");
+  if(c.vpn.yes||c.px.yes)t.push("已有数据库把它标成 VPN/代理，说明这个 IP 段已被识别过，被共用的人可能不少。");
+  if(c.ab.yes)t.push("存在滥用/攻击记录，账号注册和登录风险较高。");
+  if(!c.vpn.yes&&!c.px.yes&&!c.ab.yes&&c.dcFrac<0.5)t.push("没有发现代理或滥用标记，算是比较干净的 IP。");
+  return t.join("");
+}
+
+async function runSources(ip){
+  state.target=ip;state.res={};SOURCES.forEach(s=>state.res[s.id]={pending:true});render(false);
+  await Promise.all(SOURCES.map(async s=>{const t0=performance.now();try{const j=await getJSON(s.url(ip));if(typeof j!=="object")throw new Error("非 JSON");const d=s.parse(j);state.res[s.id]={ok:true,d,raw:j,ms:Math.round(performance.now()-t0)}}catch(e){state.res[s.id]={ok:false,err:e.name==="AbortError"?"超时":(e.message||"失败").slice(0,40)}}render(false)}));
+  render(true);
+}
+
+/* 同一出口判断：同族比较；IPv6 比较 /48 前缀（部分线路 IPv6 会轮换） */
+function v6p(x){const p=x.split("::")[0].split(":");return p.slice(0,3).join(":")}
+function sameExit(ip,v4,v6){if(isV6(ip)){if(!v6&&!isV6(v4))return null;const ref=isV6(v4)?v4:v6;return v6p(ip)===v6p(ref)}return isV6(v4)?null:ip===v4}
+/* —— 仅自检：服务视角 —— */
+const SVC=[["ChatGPT","https://chatgpt.com/cdn-cgi/trace","chatgpt"],["OpenAI API","https://api.openai.com/cdn-cgi/trace","chatgpt"],["Claude","https://claude.ai/cdn-cgi/trace","claude"],["Grok","https://grok.com/cdn-cgi/trace"],["Perplexity","https://www.perplexity.ai/cdn-cgi/trace"],["Cloudflare","https://www.cloudflare.com/cdn-cgi/trace"]];
+async function runSvc(mainIP){
+  const box=$("#svc");box.innerHTML=SVC.map(([n],i)=>`<div class="row"><span class="l">${n}</span><span class="r" id="svc${i}"><span class="spin"></span></span></div>`).join("")+`<div class="row"><span class="l">国内网站（ipip.net）</span><span class="r" id="svcCN"><span class="spin"></span></span></div>`;
+  SVC.forEach(async([n,u,key],i)=>{const el=$("#svc"+i);try{const t=trace(await getJSON(u,8000));if(!t.ip)throw new Error("empty");const same=sameExit(t.ip,mainIP,state.v6);const bad=key&&BLOCK[key].includes(t.loc);
+    el.innerHTML=`<span class="ipm">${esc(t.ip)}</span> · ${esc(t.loc)} ${bad?'<span class="chip r">地区不支持</span>':'<span class="chip g">地区支持</span>'} ${same===false?'<span class="chip y">与主出口不同</span>':''}${isV6(t.ip)?' <span class="chip">IPv6</span>':''}${t.warp==="on"?' <span class="chip y">WARP</span>':""}`}catch(e){el.innerHTML=`<span class="y1">无法连接</span> <span class="note">可能被墙/未走代理</span>`}});
+  try{const j=await getJSON("https://myip.ipip.net/json",8000);const d=j.data||{};const loc=(d.location||[]).filter(Boolean).join(" ");const cnHit=/中国/.test(loc);
+    $("#svcCN").innerHTML=`<span class="ipm">${esc(d.ip)}</span> · ${esc(loc)} ${cnHit?'<span class="chip g">国内直连（分流正常）</span>':'<span class="chip y">国内网站也走了代理</span>'}`}catch(e){$("#svcCN").innerHTML='<span class="na">查询失败</span>'}
+}
+
+/* —— 仅自检：泄露与环境一致性 —— */
+const rnd=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const flagOf=cc=>cc&&/^[A-Z]{2}$/i.test(cc)?String.fromCodePoint(...[...cc.toUpperCase()].map(c=>127397+c.charCodeAt(0))):"";
+let RN;try{RN=new Intl.DisplayNames(["zh-CN"],{type:"region"})}catch{}
+const ccName=cc=>{if(!cc)return"未知";try{return RN?RN.of(cc.toUpperCase()):cc}catch{return cc}};
+const ccTag=cc=>cc?`${flagOf(cc)} ${esc(ccName(cc))}`:'<span class="na">未知</span>';
+const CN_NAME={"中国":"CN","美国":"US","日本":"JP","韩国":"KR","新加坡":"SG","香港":"HK","台湾":"TW","英国":"GB","德国":"DE","法国":"FR","加拿大":"CA","澳大利亚":"AU","荷兰":"NL","俄罗斯":"RU"};
+const isPriv=x=>/^(10\.|127\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|0\.)/.test(x)||/^(fe80|fc|fd|::1$|::$)/i.test(x);
+const geoCache={};
+function geo(ip){if(geoCache[ip])return geoCache[ip];
+  if(ip===state.selfIP&&state.res&&first("country"))return Promise.resolve({cc:String(first("country")).toUpperCase(),isp:first("isp"),tz:first("tz")});
+  return geoCache[ip]=(async()=>{try{const j=await getJSON(`https://ipwho.is/${ip}`,6000);if(!j||j.success===false)throw 0;const c=j.connection||{};return{cc:j.country_code,isp:c.isp||c.org,asn:c.asn,tz:j.timezone&&j.timezone.id}}catch{}
+    try{const j=await getJSON(`https://ipleak.net/json/${ip}`,6000);return{cc:j.country_code,isp:j.isp_name,asn:j.as_number,tz:j.time_zone}}catch{return{}}})()}
+
+/* 环境项：状态 ok/warn/bad/info/pend，pen=扣分 */
+const ENV={};let envDone=false;
+const IC={ok:"✅",warn:"⚠️",bad:"🚨",info:"ℹ️",pend:'<span class="spin"></span>'};
+function setItem(k,o){ENV[k]=Object.assign(ENV[k]||{},o);const el=document.getElementById("ei-"+k);if(el)el.outerHTML=itemHTML(k);envScore()}
+function itemHTML(k){const o=ENV[k];return`<div class="ei ${o.st}" id="ei-${k}"><div class="ic">${IC[o.st]||""}</div><div class="bd"><div class="t"><span class="lbl">${o.label}</span>${o.badge?`<span class="chip ${o.st==="ok"?"g":o.st==="bad"?"r":o.st==="warn"?"y":""}">${o.badge}</span>`:""}</div>${o.val?`<div class="v">${o.val}</div>`:""}${o.tip&&(o.st==="warn"||o.st==="bad")?`<div class="tip">💡 ${o.tip}</div>`:""}${o.more?`<details class="more"><summary>详情</summary>${o.more}</details>`:""}</div></div>`}
+const EG=[["leak","🔓 真实 IP 泄露",["rtc","rtclan","v6leak"]],["dns","🧭 DNS 泄露",["dns","ecs"]],["route","🔀 分流与出口一致性",["split","v46"]],["fp","🧩 浏览器环境 vs IP",["tz","tzoff","lang","al","locale","ua","screen","hdr"]]];
+function envScore(){const ks=Object.keys(ENV);const pend=ks.filter(k=>ENV[k].st==="pend").length;
+  let s=100;const lost=[];ks.forEach(k=>{const o=ENV[k];if((o.st==="warn"||o.st==="bad")&&o.pen){s-=o.pen;lost.push([o.label,o.pen,o.st])}});s=Math.max(0,s);
+  const [lab,col]=s>=90?["高度一致","var(--good)"]:s>=75?["基本一致","var(--ok)"]:s>=50?["有破绽","var(--mid)"]:["破绽较多","var(--worse)"];
+  const r=$("#ering");if(!r)return;r.style.setProperty("--p",s);r.style.setProperty("--c",col);$("#escore").textContent=s;$("#escore").style.color=col;
+  $("#everdict").innerHTML=`<span style="color:${col}">${lab}</span>`+(pend?` <span class="spin"></span> <span class="note">还有 ${pend} 项在检测</span>`:"");
+  $("#elost").innerHTML=lost.length?lost.sort((a,b)=>b[1]-a[1]).map(([l,p,st])=>`<span class="chip ${st==="bad"?"r":"y"}">${l} −${p}</span>`).join(""):(pend?"":'<span class="chip g">没有发现破绽</span>');
+  state.env={s,lab,lost,pend};
+  const hc=$("#envChip");if(hc)hc.outerHTML=`<span class="chip ${s>=90?"g":s>=75?"":s>=50?"y":"r"}" id="envChip">环境一致性 ${s}${pend?"…":""}</span>`;else if($("#chips")&&state.self)$("#chips").insertAdjacentHTML("beforeend",`<span class="chip" id="envChip">环境一致性 ${s}</span>`);
+}
+
+/* WebRTC：每个 STUN 单独建连接，并行 */
+const STUNS=[["Google","stun:stun.l.google.com:19302"],["Cloudflare","stun:stun.cloudflare.com:3478"],["Twilio","stun:global.stun.twilio.com:3478"],["小米（国内）","stun:stun.miwifi.com:3478"],["哔哩哔哩（国内）","stun:stun.chat.bilibili.com:3478"]];
+function stunProbe(url,ms=4000){return new Promise(res=>{let pc,fin=false;const t0=performance.now();const out={host:new Set(),mdns:new Set(),srflx:new Set(),relay:new Set(),n:0};
+  const done=()=>{if(fin)return;fin=true;try{pc.close()}catch{}out.ms=Math.round(performance.now()-t0);res(out)};
+  try{pc=new RTCPeerConnection({iceServers:[{urls:url}]})}catch(e){return res(null)}
+  const tm=setTimeout(done,ms);
+  pc.onicegatheringstatechange=()=>{if(pc.iceGatheringState==="complete"){clearTimeout(tm);done()}};
+  pc.onicecandidate=e=>{if(!e.candidate||!e.candidate.candidate)return;out.n++;const m=e.candidate.candidate.match(/ (\S+) (\d+) typ (\w+)/);if(!m)return;const a=m[1].replace(/^\[|\]$/g,""),ty=m[3];
+    if(ty==="host"){(a.endsWith(".local")?out.mdns:out.host).add(a)}else if(ty==="srflx"||ty==="prflx")out.srflx.add(a);else if(ty==="relay")out.relay.add(a)};
+  try{pc.createDataChannel("probe");pc.createOffer().then(o=>pc.setLocalDescription(o)).catch(()=>{clearTimeout(tm);done()})}catch{clearTimeout(tm);done()}})}
+async function envRTC(ctx){
+  if(typeof RTCPeerConnection!=="function"){setItem("rtc",{st:"ok",badge:"已禁用",val:"浏览器没有开放 WebRTC，无法通过它泄露 IP。"});setItem("rtclan",{st:"ok",badge:"无",val:"—"});return}
+  const rs=await Promise.all(STUNS.map(([,u])=>stunProbe(u)));
+  if(rs.every(r=>r===null)){setItem("rtc",{st:"ok",badge:"已禁用",val:"WebRTC 被浏览器或插件拦截。"});setItem("rtclan",{st:"ok",badge:"无",val:"—"});return}
+  await ctx.ready;
+  const pubs=new Map();const host=new Set(),mdns=new Set();
+  rs.forEach((r,i)=>{if(!r)return;r.mdns.forEach(a=>mdns.add(a));r.host.forEach(a=>{if(isPriv(a))host.add(a);else{if(!pubs.has(a))pubs.set(a,new Set());pubs.get(a).add("本机网卡")}});r.srflx.forEach(a=>{if(!pubs.has(a))pubs.set(a,new Set());pubs.get(a).add(STUNS[i][0])})});
+  const cls=await Promise.all([...pubs.keys()].map(async ip=>{const ex=sameExit(ip,ctx.v4,ctx.v6)===true||ctx.foreign.includes(ip);const real=ctx.domestic.includes(ip);const g=(ex&&!real)?{}:await geo(ip);const cn=real||g.cc==="CN";return{ip,via:[...pubs.get(ip)],kind:cn?"real":ex?"exit":"other",cc:g.cc}}));
+  const real=cls.filter(c=>c.kind==="real"),other=cls.filter(c=>c.kind==="other");
+  const per=STUNS.map(([n],i)=>{const r=rs[i];const ips=r?[...r.srflx]:[];return`<div class="row"><span class="l">${n}</span><span class="r">${!r?'<span class="na">不可用</span>':ips.length?ips.map(a=>{const c=cls.find(x=>x.ip===a);return`<span class="ipm">${esc(a)}</span> ${c&&c.kind==="real"?'<span class="chip r">真实 IP</span>':c&&c.kind==="exit"?'<span class="chip g">代理出口</span>':`<span class="chip y">${ccTag(c&&c.cc)}</span>`}`}).join("<br>"):'<span class="na">无响应（UDP 不通或被代理吞掉）</span>'} <span class="note">${r?r.ms+"ms":""}</span></span></div>`}).join("");
+  const list=cls.map(c=>`<span class="ipm">${esc(c.ip)}</span>`).join("、");
+  const tipReal="WebRTC 的 UDP 没有走代理，国外网站能直接看到你的国内 IP。iPhone 上：① 小火箭用支持 UDP 的节点（Hysteria2 / TUIC / 开了 UDP 的 SS、VLESS），并确认节点“UDP 转发”可用；② 临时切到『全局路由 → 代理』再测一次；③ 不需要视频通话时可在 设置 → App → Safari → 高级 → 功能标志 中关闭 WebRTC 相关项（不同 iOS 版本名称不同）。";
+  if(real.length)setItem("rtc",{st:"bad",pen:30,badge:"真实 IP 泄露",val:`通过 WebRTC 暴露了国内 IP：${real.map(c=>`<span class="ipm">${esc(c.ip)}</span>（${c.via.join("/")}）`).join("、")}`,tip:tipReal,more:per});
+  else if(other.length)setItem("rtc",{st:"warn",pen:5,badge:"另一出口",val:`WebRTC 看到的 IP 与网页出口不同：${other.map(c=>`<span class="ipm">${esc(c.ip)}</span> ${ccTag(c.cc)}`).join("、")}。不是国内 IP，但 UDP 和 TCP 走了不同线路，风控能看出“两个出口”。`,tip:"让 UDP 和 TCP 走同一个节点：小火箭里给 STUN/UDP 用同一策略组，或换支持 UDP 的节点；用了 WARP/多跳时比较常见。",more:per});
+  else if(pubs.size)setItem("rtc",{st:"ok",badge:"只暴露代理出口",val:`WebRTC 只看到代理出口 ${list}，没有泄露真实 IP。`,more:per});
+  else setItem("rtc",{st:"ok",badge:"未暴露公网 IP",val:"所有 STUN 服务器都拿不到你的公网 IP（UDP 被代理拦下或不通），不会泄露。",more:per});
+  if(host.size)setItem("rtclan",{st:"warn",pen:3,badge:"暴露局域网 IP",val:`本机内网地址：<span class="ipm">${[...host].map(esc).join("、")}</span>`,tip:"内网 IP 本身不危险，但会成为指纹的一部分。Safari 默认用 mDNS 隐藏，看到这一项通常是装了别的浏览器或改过 WebRTC 设置。"});
+  else setItem("rtclan",{st:"ok",badge:mdns.size?"已用 mDNS 隐藏":"未暴露",val:mdns.size?`内网地址被替换成随机 <span class="ipm">xxxx.local</span> 名称（${mdns.size} 个）`:"没有拿到本机内网地址"});
+}
+
+/* DNS 泄露：bash.ws + ipleak + ip-api EDNS 并行 */
+async function trigger(url,ms=3500){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);try{await fetch(url,{mode:"no-cors",cache:"no-store",signal:c.signal})}catch{}finally{clearTimeout(t)}}
+async function envDNS(ctx){
+  const R=new Map();const src={};
+  const add=(ip,o,s)=>{if(!ip)return;const e=R.get(ip)||{ip,src:new Set()};Object.assign(e,Object.fromEntries(Object.entries(o).filter(([,v])=>v)));e.src.add(s);R.set(ip,e)};
+  const A=(async()=>{const id=rnd(8);await Promise.all([1,2,3,4,5,6].map(i=>trigger(`https://${i}.${id}.bash.ws/`)));await sleep(400);const j=await getJSON(`https://bash.ws/dnsleak/test/${id}?json`,8000);if(!Array.isArray(j))throw new Error("格式");
+    j.filter(x=>x.type==="dns").forEach(x=>add(x.ip,{cc:(x.country||"").toUpperCase(),isp:x.org||x.asn},"bash.ws"));return j.filter(x=>x.type==="dns").length})();
+  const B=(async()=>{const s=rnd(20);await Promise.all([1,2,3,4].map(i=>getJSON(`https://${s}-${i}.ipleak.net/dnsdetection/`,5000).catch(()=>{})));const j=await getJSON(`https://${s}.ipleak.net/dnsdetection/`,6000);const ips=Object.keys((j&&j.ip)||{});ips.forEach(ip=>add(ip,{},"ipleak"));return ips.length})();
+  const C=(async()=>{const j=await getJSON(`https://${rnd(16)}.edns.ip-api.com/json`,6000);if(j.dns)add(j.dns.ip,{geoTxt:j.dns.geo},"ip-api");return j})();
+  const [a,b,c]=await Promise.allSettled([A,B,C]);src.bash=a;src.ipleak=b;src.ipapi=c;
+  await Promise.all([...R.values()].filter(e=>!e.cc).slice(0,8).map(async e=>{const g=await geo(e.ip);e.cc=g.cc;e.isp=e.isp||g.isp}));
+  await ctx.ready;
+  const st=(p,n)=>p.status==="fulfilled"?`<span class="n1">✓</span>`:`<span class="y1">✗</span>`;
+  const srcLine=`<p class="note" style="margin:6px 0 0">检测源：bash.ws ${st(a)} · ipleak.net ${st(b)} · ip-api EDNS ${st(c)}（随机子域名触发解析，再看是哪台 DNS 服务器来查的）</p>`;
+  const rs=[...R.values()];
+  if(!rs.length){setItem("dns",{st:"info",badge:"无法检测",val:"三个 DNS 检测源都没返回结果（可能被拦截或超时），稍后重试，或打开 browserleaks.com/dns 对照。"+srcLine});setItem("ecs",{st:"info",badge:"无数据",val:"—"});return}
+  const cn=rs.filter(e=>e.cc==="CN"),ex=ctx.exitCC;
+  const grp={};rs.forEach(e=>{const k=(e.cc||"?")+"|"+String(e.isp||e.geoTxt||"").replace(/,? inc\.?$/i,"").trim();grp[k]=(grp[k]||0)+1});
+  const tbl=`<div class="dnsl">${Object.entries(grp).sort((a,b)=>b[1]-a[1]).map(([k,n])=>{const [c,i]=k.split("|");return`<div class="row"><span class="l">${ccTag(c==="?"?"":c)} <span class="note">${esc(i)}</span></span><span class="r">${n} 台</span></div>`}).join("")}</div><details class="more"><summary>全部 ${rs.length} 个解析服务器 IP</summary><div class="note ipm" style="word-break:break-all">${rs.map(e=>esc(e.ip)).join("、")}</div></details>`;
+  const ccs=[...new Set(rs.map(e=>e.cc).filter(Boolean))];
+  const tip="DNS 查询发给了国内服务器，运营商/防火墙能看到你访问了哪些国外网站，部分网站还会据此判断你在中国。小火箭：配置 → 编辑配置 →『DNS 覆写』填 https://1.1.1.1/dns-query 或 https://dns.google/dns-query，并确保规则不是“仅 IP 规则”导致本地先解析；用 Fake-IP / 远端解析的节点类型更好。";
+  if(cn.length)setItem("dns",{st:"bad",pen:20,badge:"DNS 泄露到国内",val:`共 ${rs.length} 台解析服务器，其中 ${cn.length} 台在中国。`+tbl+srcLine,tip});
+  else if(ex&&ccs.length&&!ccs.includes(ex))setItem("dns",{st:"warn",pen:5,badge:"与出口不同国家",val:`没有国内 DNS（好），但解析服务器在 ${ccs.map(ccTag).join("、")}，出口在 ${ccTag(ex)}。`+tbl+srcLine,tip:"一般不影响使用；想做到更一致，把小火箭 DNS 覆写改成节点所在地区也在用的公共 DNS（如 1.1.1.1 / 8.8.8.8 的 DoH），它们是全球 Anycast，会就近落到出口所在地区。"});
+  else setItem("dns",{st:"ok",badge:"未泄露",val:`共 ${rs.length} 台解析服务器，都不在中国${ccs.length?"（"+ccs.map(ccTag).join("、")+"）":""}。`+tbl+srcLine});
+  if(c.status==="fulfilled"&&c.value.edns){const e=c.value.edns;const cnE=/china|中国/i.test(e.geo||"");setItem("ecs",{st:cnE?"bad":"info",pen:cnE?10:0,badge:cnE?"子网在中国":"已携带",val:`DNS 请求里带了客户端子网 <span class="ipm">${esc(e.ip)}</span>（${esc(e.geo||"")}），权威 DNS 能据此看到你的大致位置。`,tip:"关闭 EDNS Client Subnet：换成不带 ECS 的 DoH（如 https://1.1.1.1/dns-query）。"})}
+  else setItem("ecs",{st:"ok",badge:"未携带",val:c.status==="fulfilled"?"DNS 请求没有带客户端子网（ECS），不会把你的网段透露给网站。":"EDNS 检测失败，跳过"});
+}
+
+/* 分流：国内视角 vs 国外视角，IPv4 vs IPv6 */
+const DOM=[["ipip.net",async()=>{const j=await getJSON("https://myip.ipip.net/json",7000);const d=j.data||{};const loc=(d.location||[]).filter(Boolean);return{ip:d.ip,cc:CN_NAME[loc[0]]||(/中国/.test(loc[0])?"CN":""),txt:[...new Set(loc.slice(0,4))].join(" ")}}],
+ ["测速网 speedtest.cn",async()=>{const j=await getJSON("https://api-v3.speedtest.cn/ip",7000);const d=j.data||{};return{ip:d.ip,cc:d.countryCode,txt:[d.province,d.city,d.isp].filter(Boolean).join(" "),masked:/\*/.test(d.ip||"")}}],
+ ["myip.la",async()=>{const j=await getJSON("https://api.myip.la/cn?json",7000);const l=j.location||{};return{ip:j.ip,cc:l.country_code,txt:[l.province,l.city].filter(Boolean).join(" ")}}]];
+const FOR=[["IPv4 · ipify","v4",async()=>({ip:(await getJSON("https://api.ipify.org?format=json",7000)).ip})],
+ ["IPv4 · Cloudflare 1.1.1.1","v4",async()=>{const t=trace(await getJSON("https://1.1.1.1/cdn-cgi/trace",7000));return{ip:t.ip,cc:t.loc}}],
+ ["IPv6 · ipify","v6",async()=>{const ip=(await getJSON("https://api6.ipify.org?format=json",6000)).ip;if(!isV6(ip))throw new Error("无 IPv6");return{ip}}],
+ ["IPv6 · icanhazip","v6",async()=>{const ip=String(await getJSON("https://ipv6.icanhazip.com",6000)).trim();if(!isV6(ip))throw new Error("无 IPv6");return{ip}}]];
+async function envRoute(ctx){
+  const el=$("#routeTbl");el.innerHTML=`<div class="sub">🇨🇳 国内网站看到的你</div>`+DOM.map(([n],i)=>`<div class="row"><span class="l">${n}</span><span class="r" id="dm${i}"><span class="spin"></span></span></div>`).join("")+`<div class="sub">🌍 国外网站看到的你</div>`+FOR.map(([n],i)=>`<div class="row"><span class="l">${n}</span><span class="r" id="fr${i}"><span class="spin"></span></span></div>`).join("");
+  const dom=await Promise.all(DOM.map(async([,f],i)=>{try{const r=await f();if(!r.ip)throw 0;if(!r.cc&&!r.masked){const g=await geo(r.ip);r.cc=g.cc}$("#dm"+i).innerHTML=`<span class="ipm">${esc(r.ip)}</span> ${ccTag(r.cc)} <span class="note">${esc(r.txt||"")}</span>`;return r}catch{$("#dm"+i).innerHTML='<span class="na">查询失败</span>';return null}}));
+  const fr=await Promise.all(FOR.map(async([,fam,f],i)=>{try{const r=await f();if(!r.cc){const g=await geo(r.ip);r.cc=g.cc}r.fam=fam;$("#fr"+i).innerHTML=`<span class="ipm">${esc(r.ip)}</span> ${ccTag(r.cc)}`;return r}catch(e){$("#fr"+i).innerHTML=fam==="v6"?'<span class="na">没有 IPv6 出口</span>':'<span class="na">查询失败</span>';return null}}));
+  const D=dom.filter(Boolean),F=fr.filter(Boolean);
+  ctx.domestic.push(...D.filter(d=>d.cc==="CN"&&!d.masked).map(d=>d.ip));ctx.foreign.push(...F.filter(f=>f.cc!=="CN").map(f=>f.ip));
+  ctx.routeDone();
+  await ctx.ready;
+  const dCN=D.some(d=>d.cc==="CN"),dAll=D.length&&D.every(d=>d.cc!=="CN");
+  const f4=F.filter(f=>f.fam==="v4"),f6=F.filter(f=>f.fam==="v6");
+  const f4CN=f4.some(f=>f.cc==="CN"),f6CN=f6.some(f=>f.cc==="CN");
+  if(f4CN)setItem("split",{st:"bad",pen:40,badge:"国外网站走了直连",val:"国外网站通过 IPv4 看到的是中国 IP，代理没生效。",tip:"检查小火箭是否已连接、当前是不是『直连』模式，规则里是否把这些网站误设成 DIRECT。"});
+  else if(dCN)setItem("split",{st:"ok",badge:"分流正常",val:"国内网站走直连（看到国内 IP），国外网站走代理（看到境外 IP）。"});
+  else if(dAll)setItem("split",{st:"warn",pen:3,badge:"全局代理",val:"国内网站也看到境外 IP，说明所有流量都走了代理（全局模式）。不算泄露，但国内 App/网站会变慢，部分会触发异地登录风控。",tip:"小火箭切回『配置』规则模式，确认规则里有 GEOIP,CN,DIRECT 或国内域名直连。"});
+  else setItem("split",{st:"info",badge:"无法判断",val:"国内视角的接口都失败了（可能被代理规则拦截），无法判断分流。"});
+  if(f6CN)setItem("v6leak",{st:"bad",pen:25,badge:"IPv6 绕过代理",val:`国外网站通过 IPv6 看到了国内地址 <span class="ipm">${esc(f6.find(f=>f.cc==="CN").ip)}</span>。很多网站优先用 IPv6，等于直接暴露真实位置。`,tip:"让 IPv6 也走代理或干脆不用：小火箭设置里打开 IPv6 相关开关（让 IPv6 进隧道）；或在家里路由器/光猫关闭 IPv6。改完后回到本页重测（不同版本菜单名称可能不同）。"});
+  else if(f6.length)setItem("v6leak",{st:"ok",badge:"IPv6 也走代理",val:`IPv6 出口 <span class="ipm">${esc(f6[0].ip)}</span> ${ccTag(f6[0].cc)}，没有泄露。`});
+  else setItem("v6leak",{st:"ok",badge:"无 IPv6",val:"国外网站连不上你的 IPv6，不存在 IPv6 绕过代理的问题。"});
+  const c4=f4[0]&&f4[0].cc,c6=f6[0]&&f6[0].cc;
+  if(c4&&c6&&c4!==c6&&!f6CN)setItem("v46",{st:"warn",pen:5,badge:"v4/v6 国家不同",val:`IPv4 在 ${ccTag(c4)}，IPv6 在 ${ccTag(c6)}。同一个人同时出现在两个国家，容易被风控。`,tip:"在小火箭节点或规则里统一 IPv4/IPv6 的出口；用 Cloudflare WARP 时常见，可关闭 WARP 的 IPv6。"});
+  else if(f4.length>1&&new Set(f4.map(f=>f.ip)).size>1)setItem("v46",{st:"warn",pen:3,badge:"IPv4 出口在变",val:`不同网站看到的 IPv4 不同：${[...new Set(f4.map(f=>f.ip))].map(x=>`<span class="ipm">${esc(x)}</span>`).join("、")}`,tip:"可能是负载均衡/自动选择节点。对 ChatGPT 等敏感服务，建议在小火箭里固定一个节点，不要用“自动测速选择”。"});
+  else setItem("v46",{st:"ok",badge:"一致",val:c4?`IPv4 ${ccTag(c4)}${c6?` · IPv6 ${ccTag(c6)}`:""}，各网站看到同一个出口。`:"—"});
+}
+
+/* 浏览器环境 */
+const CLANG={US:["en"],GB:["en"],CA:["en","fr"],AU:["en"],NZ:["en"],IE:["en"],SG:["en","zh"],IN:["en","hi"],PH:["en"],MY:["ms","en","zh"],JP:["ja"],KR:["ko"],TW:["zh"],HK:["zh","en"],MO:["zh"],CN:["zh"],DE:["de"],AT:["de"],CH:["de","fr","it"],FR:["fr"],BE:["nl","fr"],NL:["nl"],LU:["fr","de"],ES:["es"],MX:["es"],AR:["es"],IT:["it"],PT:["pt"],BR:["pt"],RU:["ru"],UA:["uk","ru"],TR:["tr"],VN:["vi"],TH:["th"],ID:["id"],PL:["pl"],SE:["sv"],FI:["fi"],NO:["nb","no"],DK:["da"],AE:["ar","en"],SA:["ar"],IL:["he"]};
+function offMin(tz){try{const p=new Intl.DateTimeFormat("en-US",{timeZone:tz,timeZoneName:"longOffset"}).formatToParts(new Date()).find(x=>x.type==="timeZoneName").value;const m=p.match(/GMT([+-])(\d{2}):?(\d{2})?/);return m?(m[1]==="-"?-1:1)*(+m[2]*60+ +(m[3]||0)):0}catch{return null}}
+const fmtOff=m=>m===null?"?":"UTC"+(m>=0?"+":"−")+String(Math.floor(Math.abs(m)/60))+(Math.abs(m)%60?":"+String(Math.abs(m)%60).padStart(2,"0"):"");
+function uaOS(ua){return /iPhone/.test(ua)?"iPhone":/iPad/.test(ua)?"iPad":/Android/.test(ua)?"Android":/Mac OS X/.test(ua)?"Mac":/Windows/.test(ua)?"Windows":/Linux/.test(ua)?"Linux":"未知"}
+function platOS(p,touch){p=p||"";return /iPhone/.test(p)?"iPhone":/iPad/.test(p)?"iPad":/Mac/.test(p)?(touch>1?"iPad":"Mac"):/Win/.test(p)?"Windows":/Android|Linux arm|aarch64/i.test(p)?"Android":/Linux/.test(p)?"Linux":"未知"}
+async function envFP(ctx){
+  const io=Intl.DateTimeFormat().resolvedOptions();const btz=io.timeZone;const langs=[...(navigator.languages||[navigator.language])];const loc=io.locale;
+  const hdrP=getJSON("https://httpbin.org/headers",6000).then(j=>j.headers||{}).catch(()=>null);
+  // 时区偏移自洽（伪装检测）
+  const jsOff=-new Date().getTimezoneOffset(),intlOff=offMin(btz);
+  setItem("tzoff",jsOff===intlOff?{st:"ok",badge:"自洽",val:`系统时钟 ${fmtOff(jsOff)} 与时区 ${esc(btz)} 吻合`}:{st:"warn",pen:5,badge:"自相矛盾",val:`Date 偏移 ${fmtOff(jsOff)}，Intl 时区 ${esc(btz)}（${fmtOff(intlOff)}）`,tip:"通常是插件/脚本只改了一半时区，反而更像伪装。iPhone 上关掉相关脚本或浏览器扩展即可。"});
+  // UA / 平台
+  const ua=navigator.userAgent,tp=navigator.maxTouchPoints||0,o1=uaOS(ua),o2=platOS(navigator.platform,tp);
+  const okUA=o1===o2||(o1==="Mac"&&o2==="iPad")||(o1==="iPad"&&o2==="Mac");const mobUA=/iPhone|iPad|Android/.test(o1);const touchBad=mobUA&&tp===0;
+  setItem("ua",okUA&&!touchBad?{st:"ok",badge:o1==="Mac"&&tp>1?"iPad 桌面模式":o1,val:`UA 系统 ${o1} · platform ${esc(navigator.platform||"—")} · 触控点 ${tp}`}:{st:"warn",pen:10,badge:"UA 与设备不符",val:`UA 写的是 ${o1}，但 platform 是 ${esc(navigator.platform||"—")}（${o2}），触控点 ${tp}`,tip:"关闭“请求桌面网站”、UA 修改插件或小火箭里的 UA 改写脚本；伪装 UA 反而容易被识别。"});
+  // 屏幕
+  const sw=screen.width,sh=screen.height,dpr=devicePixelRatio;const scrBad=(o1==="iPhone"&&(dpr<2||Math.min(sw,sh)>500))||(mobUA&&Math.min(sw,sh)>1100);
+  setItem("screen",scrBad?{st:"warn",pen:5,badge:"与设备不符",val:`${sw}×${sh} @${dpr}x，不像 ${o1} 的屏幕`,tip:"多半是 UA 伪装或桌面浏览器模拟手机，关掉模拟即可。"}:{st:"ok",badge:`${sw}×${sh} @${dpr}x`,val:`视口 ${innerWidth}×${innerHeight} · 色深 ${screen.colorDepth} · CPU ${navigator.hardwareConcurrency||"?"} 核`});
+  await ctx.ready;
+  const cc=ctx.exitCC,itz=ctx.exitTZ;
+  // 时区
+  if(itz){const a=offMin(btz),b=offMin(itz);const same=a===b;
+    setItem("tz",same?{st:"ok",badge:"一致",val:`浏览器 ${esc(btz)}（${fmtOff(a)}）· IP ${esc(itz)}（${fmtOff(b)}）`}:{st:"warn",pen:10,badge:`相差 ${Math.abs(a-b)/60} 小时`,val:`浏览器 ${esc(btz)}（${fmtOff(a)}）· IP 所在 ${esc(itz)}（${fmtOff(b)}）`,tip:`网站能直接读到手机时区，时区是中国、IP 在国外是最常见的破绽。iPhone：设置 → 通用 → 日期与时间 → 关闭『自动设置』→ 时区选 ${esc(itz.split("/").pop().replace(/_/g," "))} 附近的城市。注意闹钟和日历会跟着变，用完记得改回。`})}
+  else setItem("tz",{st:"info",badge:"无 IP 时区",val:`浏览器 ${esc(btz)}（${fmtOff(intlOff)}）`});
+  // 语言
+  const exp=CLANG[cc]||null;const pri=(langs[0]||"").split("-")[0].toLowerCase();const any=exp&&langs.some(l=>exp.includes(l.split("-")[0].toLowerCase()));
+  if(!exp||!cc)setItem("lang",{st:"info",badge:"无对照",val:esc(langs.join(", "))});
+  else if(exp.includes(pri))setItem("lang",{st:"ok",badge:"一致",val:`${esc(langs.join(", "))} · IP 在 ${ccTag(cc)}`});
+  else setItem("lang",{st:"warn",pen:any?2:5,badge:any?"首选语言不同":"语言不匹配",val:`首选 ${esc(langs[0])}，IP 在 ${ccTag(cc)}（当地常用 ${exp.join("/")}）`,tip:`中文用户用境外 IP 很常见，只是轻微破绽。想更像当地用户：设置 → 通用 → 语言与地区 → 添加 ${exp[0]==="en"?"English":exp[0]} 并拖到『首选语言』第一位（Safari 的 Accept-Language 会跟着变）。`});
+  // 地区格式
+  const lr=(()=>{try{return new Intl.Locale(loc).maximize().region}catch{return(loc.split("-")[1]||"").toUpperCase()}})();
+  setItem("locale",!cc||!lr?{st:"info",badge:esc(loc),val:"—"}:lr===cc||(lr==="CN"&&false)?{st:"ok",badge:"一致",val:`系统地区 ${esc(loc)}（${ccTag(lr)}）· 数字 ${(1234567.89).toLocaleString()} · 日期 ${new Date().toLocaleDateString()}`}:{st:"warn",pen:5,badge:"地区不同",val:`系统地区格式 ${esc(loc)}（${ccTag(lr)}），IP 在 ${ccTag(cc)}`,tip:`设置 → 通用 → 语言与地区 →『地区』改为 ${esc(ccName(cc))}。会改变日期/货币格式，不影响中文界面。`});
+  // Accept-Language + 代理头
+  const h=await hdrP;
+  if(!h){setItem("al",{st:"info",badge:"无法读取",val:"回显接口失败，跳过"});setItem("hdr",{st:"info",badge:"无法读取",val:"—"});return}
+  const al=h["Accept-Language"]||"";const alp=(al.split(",")[0]||"").split(";")[0].trim().toLowerCase();const alOK=!al||alp.split("-")[0]===pri;
+  setItem("al",alOK?{st:"ok",badge:"与系统一致",val:esc(al||"（未发送）")}:{st:"warn",pen:5,badge:"与系统语言不同",val:`请求头 ${esc(al)}，但 JS 读到 ${esc(langs[0])}`,tip:"请求头和 navigator.language 不一致，通常是插件/脚本只改了一处，属于明显的伪装特征。关掉改语言的插件或脚本。"});
+  const px=["Via","X-Forwarded-For","Forwarded","X-Real-Ip","X-Proxy-Id","Proxy-Connection","X-Bluecoat-Via"].filter(k=>h[k]);
+  setItem("hdr",px.length?{st:"warn",pen:10,badge:"有代理特征头",val:px.map(k=>`${k}: <span class="ipm">${esc(h[k])}</span>`).join("<br>"),tip:"中间的 HTTP 代理在请求里加了这些头，网站一眼就能看出你在用代理，甚至看到真实 IP。换成加密协议（VLESS/Trojan/SS 等）而不是明文 HTTP 代理。"}:{st:"ok",badge:"干净",val:"请求里没有 Via / X-Forwarded-For 等代理特征头"});
+}
+
+async function runEnv(mainIP,srcP){
+  for(const k in ENV)delete ENV[k];
+  const L={rtc:"WebRTC 公网 IP",rtclan:"WebRTC 局域网 IP",v6leak:"IPv6 是否绕过代理",dns:"DNS 解析服务器",ecs:"EDNS 客户端子网",split:"国内/国外分流",v46:"IPv4 / IPv6 出口一致",tz:"时区 vs IP",tzoff:"时区设置自洽",lang:"系统语言 vs IP 国家",al:"Accept-Language 请求头",locale:"地区格式 vs IP 国家",ua:"UA 与平台",screen:"屏幕",hdr:"代理特征请求头"};
+  Object.entries(L).forEach(([k,l])=>ENV[k]={label:l,st:"pend"});
+  $("#env").innerHTML=`<div class="hero" style="margin-bottom:6px"><div class="ring sm" id="ering"><div><b id="escore">--</b><span>一致性</span></div></div><div style="min-width:0;flex:1"><div class="verdict" id="everdict"><span class="spin"></span> 检测中…</div><div class="chips" id="elost"></div></div></div>`+
+    EG.map(([g,t,ks])=>`<div class="sub">${t}</div>`+(g==="route"?`<div id="routeTbl" class="routeTbl"></div>`:"")+ks.map(itemHTML).join("")).join("")+
+    `<details style="margin-top:8px"><summary>环境一致性怎么算</summary><p class="note">与上面的“IP 纯净度”分开计算：纯净度看 IP 本身在数据库里的名声，一致性看你的手机/浏览器有没有露馅。满分 100，发现问题按严重程度扣分：WebRTC 泄露真实 IP −30，IPv6 绕过代理 −25，DNS 走国内 −20，EDNS 子网在国内 −10，国外网站走直连 −40；时区不一致 −10，UA 与设备不符 −10，代理特征头 −10；语言/地区格式/Accept-Language/时区自洽/屏幕/IPv4-IPv6 不同国家/WebRTC 另一出口 各 −2～5，全局代理 −3，暴露局域网 IP −3。≥90 高度一致，75–89 基本一致，50–74 有破绽，&lt;50 破绽较多。ℹ️ 表示无法检测，不扣分。<br>参考了 browserleaks（WebRTC/DNS）、ipleak.net、whoer.net（伪装度）、pixelscan / iphey（指纹一致性）、ping0.cc 与 ip.skk.moe（国内外分流视角）的检测项。</p></details>`;
+  envScore();
+  let routeDone;const routeP=new Promise(r=>routeDone=r);
+  const ctx={v4:mainIP,v6:state.v6,domestic:[],foreign:[],routeDone};
+  ctx.ready=(async()=>{await srcP;await Promise.race([routeP,sleep(8000)]);ctx.exitCC=String(first("country")||"").toUpperCase()||null;ctx.exitTZ=first("tz")||null})();
+  await Promise.allSettled([envRTC(ctx),envDNS(ctx),envRoute(ctx),envFP(ctx)].map(p=>p.catch(e=>console.log("env err",e&&e.message))));
+  Object.keys(ENV).forEach(k=>{if(ENV[k].st==="pend")setItem(k,{st:"info",badge:"检测失败",val:"—"})});
+  envDone=true;envScore();
+}
+
+/* —— 入口 —— */
+async function go(input){
+  const q=(input||"").trim();
+  $("#verdict").innerHTML='<span class="spin"></span> 检测中…';$("#score").textContent="--";$("#ring").style.setProperty("--p",0);$("#chips").innerHTML="";
+  if(q){if(!isIP(q)){$("#verdict").textContent="IP 格式不对";$("#loc").textContent="请输入 IPv4（如 1.2.3.4）或 IPv6";return}
+    state.self=false;history.replaceState(null,"","?ip="+encodeURIComponent(q));$("#svc").innerHTML='<span class="note">检测任意 IP 时不适用</span>';$("#env").innerHTML='<span class="note">检测任意 IP 时不适用</span>';
+    renderTabs();return runSources(q)}
+  state.self=true;history.replaceState(null,"",location.pathname);
+  $("#loc").textContent="正在获取出口 IP…";
+  let v4=null,v6=null;
+  const [a,b]=await Promise.allSettled([getJSON("https://api.ipify.org?format=json",7000),getJSON("https://api6.ipify.org?format=json",5000)]);
+  if(a.status==="fulfilled")v4=a.value.ip;if(b.status==="fulfilled"&&isV6(b.value.ip))v6=b.value.ip;
+  if(!v4){try{v4=trace(await getJSON("https://www.cloudflare.com/cdn-cgi/trace")).ip}catch{}}
+  if(!v4&&v6)v4=v6;
+  if(!v4){$("#verdict").textContent="获取出口 IP 失败";$("#loc").textContent="请检查网络/代理，或手动输入 IP";return}
+  state.v6=v6&&v6!==v4?v6:null;state.selfIP=v4;renderTabs();
+  runSvc(v4);
+  const sp=runSources(v4);
+  runEnv(v4,sp);
+  await sp;
+}
+function renderTabs(){const t=[];if(state.selfIP)t.push(`<button class="ghost" type="button" onclick="go('')">🏠 我的出口 <span class="ipm">${esc(state.selfIP)}</span></button>`);if(state.v6)t.push(`<button class="ghost" type="button" onclick="go('${state.v6}')">IPv6 出口</button>`);$("#tabs").innerHTML=t.join("")}
+$("#f").addEventListener("submit",e=>{e.preventDefault();$("#q").blur();go($("#q").value)});
+$("#maskBtn").onclick=()=>{state.masked=!state.masked;document.body.classList.toggle("mask",state.masked);$("#maskBtn").textContent=state.masked?"👀 显示 IP":"🙈 隐藏 IP（方便截图）"};
+$("#copyBtn").onclick=async()=>{const c=compute();const t=`IP: ${state.target}\n位置: ${$("#loc").textContent}\n类型: ${c.type}\n纯净度: ${c.score}（${grade(c.score)[0]}）\nVPN 标记 ${c.vpn.yes}/${c.vpn.n}，代理 ${c.px.yes}/${c.px.n}，滥用 ${c.ab.yes}/${c.ab.n}${typeof c.risk==="number"?"，风险分 "+c.risk:""}${state.env?`\n环境一致性: ${state.env.s}（${state.env.lab}）${state.env.lost.length?"，问题: "+state.env.lost.map(x=>x[0]).join("、"):""}`:""}\n${location.origin}${location.pathname}?ip=${state.target}`;try{await navigator.clipboard.writeText(t);$("#copyBtn").textContent="✅ 已复制"}catch{prompt("复制以下内容",t)}setTimeout(()=>$("#copyBtn").textContent="📋 复制报告",1500)};
+const qp=new URLSearchParams(location.search).get("ip");if(qp)$("#q").value=qp;
+go(qp||"");
+</script>
+</body>
+</html>
